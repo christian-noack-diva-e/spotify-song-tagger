@@ -15,8 +15,8 @@ beforeEach(async () => {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-async function seedCategory(name: string, sortOrder: number): Promise<number> {
-  return (await db.categories.add({ name, sortOrder })) as number
+async function seedCategory(name: string): Promise<number> {
+  return (await db.categories.add({ name })) as number
 }
 
 async function seedTag(playlistName: string, categoryId: number, tagValue: string, playlistId = 'pl-1'): Promise<number> {
@@ -50,7 +50,7 @@ describe('queryCategories', () => {
   })
 
   it('returns categories with their tags', async () => {
-    const catId = await seedCategory('Energy', 0)
+    const catId = await seedCategory('Energy')
     await seedTag('Dance High Energy', catId, 'High')
 
     const result = await queryCategories()
@@ -60,24 +60,25 @@ describe('queryCategories', () => {
     expect(result[0].tags[0].value).toBe('High')
   })
 
-  it('sorts by sortOrder ascending', async () => {
-    await seedCategory('Mood', 1)
-    await seedCategory('Energy', 0)
-    await seedCategory('Genre', 2)
+  it('sorts by categoryNames order from config', async () => {
+    // Default config has Energy before Mood before Genre
+    await seedCategory('Mood')
+    await seedCategory('Energy')
+    await seedCategory('Genre')
 
     const result = await queryCategories()
     expect(result.map(c => c.name)).toEqual(['Energy', 'Mood', 'Genre'])
   })
 
   it('returns category with id populated', async () => {
-    const catId = await seedCategory('Beat', 0)
+    const catId = await seedCategory('Beat')
     const result = await queryCategories()
     expect(result[0].id).toBe(catId)
   })
 
   it('does not leak tags from other categories into a category', async () => {
-    const cat1 = await seedCategory('Energy', 0)
-    const cat2 = await seedCategory('Mood', 1)
+    const cat1 = await seedCategory('Energy')
+    const cat2 = await seedCategory('Mood')
     await seedTag('Dance High Energy', cat1, 'High')
     await seedTag('Dance Happy Mood', cat2, 'Happy')
 
@@ -103,7 +104,7 @@ describe('querySongs', () => {
   })
 
   it('populates tags for each song', async () => {
-    const catId = await seedCategory('Energy', 0)
+    const catId = await seedCategory('Energy')
     const tagId = await seedTag('Dance High Energy', catId, 'High')
     const song = await seedSong()
     await assignTag(song.spotifyUri, tagId)
@@ -115,8 +116,8 @@ describe('querySongs', () => {
   })
 
   it('computes missingCategories correctly', async () => {
-    const cat1 = await seedCategory('Energy', 0)
-    await seedCategory('Mood', 1)
+    const cat1 = await seedCategory('Energy')
+    await seedCategory('Mood')
     const tagId = await seedTag('Dance High Energy', cat1, 'High')
     const song = await seedSong()
     await assignTag(song.spotifyUri, tagId)
@@ -126,7 +127,7 @@ describe('querySongs', () => {
   })
 
   it('reports no missing categories when all are covered', async () => {
-    const catId = await seedCategory('Energy', 0)
+    const catId = await seedCategory('Energy')
     const tagId = await seedTag('Dance High Energy', catId, 'High')
     const song = await seedSong()
     await assignTag(song.spotifyUri, tagId)
@@ -136,8 +137,8 @@ describe('querySongs', () => {
   })
 
   it('reports all categories as missing for an untagged song', async () => {
-    await seedCategory('Energy', 0)
-    await seedCategory('Mood', 1)
+    await seedCategory('Energy')
+    await seedCategory('Mood')
     await seedSong()
 
     const result = await querySongs()
@@ -145,8 +146,8 @@ describe('querySongs', () => {
   })
 
   it('filters by missingCategory when provided', async () => {
-    const cat1 = await seedCategory('Energy', 0)
-    await seedCategory('Mood', 1)
+    const cat1 = await seedCategory('Energy')
+    await seedCategory('Mood')
     const tagId = await seedTag('Dance High Energy', cat1, 'High')
 
     // Song A: has Energy, missing Mood
@@ -161,7 +162,7 @@ describe('querySongs', () => {
   })
 
   it('returns no songs when missingCategory filter matches nothing', async () => {
-    const catId = await seedCategory('Energy', 0)
+    const catId = await seedCategory('Energy')
     const tagId = await seedTag('Dance High Energy', catId, 'High')
     const song = await seedSong()
     await assignTag(song.spotifyUri, tagId)
@@ -191,9 +192,9 @@ describe('querySongs', () => {
   })
 
   it('handles a song with multiple tags across multiple categories', async () => {
-    const cat1 = await seedCategory('Energy', 0)
-    const cat2 = await seedCategory('Mood', 1)
-    await seedCategory('Genre', 2)
+    const cat1 = await seedCategory('Energy')
+    const cat2 = await seedCategory('Mood')
+    await seedCategory('Genre')
     const tag1 = await seedTag('Dance High Energy', cat1, 'High')
     const tag2 = await seedTag('Dance Happy Mood', cat2, 'Happy')
     const song = await seedSong()
@@ -214,7 +215,7 @@ describe('querySong', () => {
   })
 
   it('returns the song with full tag and category join', async () => {
-    const catId = await seedCategory('Energy', 0)
+    const catId = await seedCategory('Energy')
     const tagId = await seedTag('Dance High Energy', catId, 'High')
     const song = await seedSong({ spotifyUri: 'spotify:track:single' })
     await assignTag(song.spotifyUri, tagId)
@@ -227,7 +228,7 @@ describe('querySong', () => {
   })
 
   it('returns a song with no tags and all categories missing', async () => {
-    await seedCategory('Mood', 0)
+    await seedCategory('Mood')
     await seedSong({ spotifyUri: 'spotify:track:bare' })
 
     const result = await querySong('spotify:track:bare')

@@ -1,6 +1,6 @@
 import type { CategoryResponse, CategorySuggestion, SongResponse, SpotifyStatus } from './types'
 import { querySongs, querySong, queryCategories, createTrackSongBuilder, db } from './db'
-import { getConfig } from './settingsStore'
+import { getConfig, saveConfig } from './settingsStore'
 import * as spotifyAuth from './spotifyAuth'
 import * as spotifyApi from './spotifyApi'
 import { sync } from './syncService'
@@ -21,12 +21,8 @@ export const api = {
   getCategories: (): Promise<CategoryResponse[]> =>
     queryCategories(),
 
-  updateCategoryOrder: async (order: { id: number; sortOrder: number }[]): Promise<void> => {
-    await db.transaction('rw', db.categories, async () => {
-      for (const { id, sortOrder } of order) {
-        await db.categories.update(id, { sortOrder })
-      }
-    })
+  updateCategoryOrder: (categories: CategoryResponse[]): void => {
+    saveConfig({ categoryNames: categories.map(c => c.name) })
   },
 
   assignTag: async (spotifyUri: string, tagId: number): Promise<void> => {

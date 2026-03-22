@@ -122,15 +122,8 @@ export async function sync(onProgress?: (p: SyncProgress) => void): Promise<Sync
 
         // Upsert category
         if (!existingCategories.has(parsed.category)) {
-          const sortOrder = config.categoryNames.indexOf(parsed.category)
-          const newId = await db.categories.add({
-            name: parsed.category,
-            sortOrder: sortOrder >= 0 ? sortOrder : null,
-          })
-          existingCategories.set(parsed.category, {
-            id: newId as number, name: parsed.category,
-            sortOrder: sortOrder >= 0 ? sortOrder : null,
-          })
+          const newId = await db.categories.add({ name: parsed.category })
+          existingCategories.set(parsed.category, { id: newId as number, name: parsed.category })
         }
         const category = existingCategories.get(parsed.category)!
 

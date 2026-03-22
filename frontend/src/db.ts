@@ -1,5 +1,6 @@
 import Dexie from 'dexie'
 import type { SongResponse, TagResponse, CategoryResponse } from './types'
+import { getConfig } from './settingsStore'
 
 // — Raw DB row types —
 
@@ -24,7 +25,6 @@ export interface Tag {
 export interface Category {
   id?: number
   name: string
-  sortOrder: number | null
 }
 
 export interface SongTag {
@@ -61,7 +61,8 @@ async function loadJoinData() {
     db.tags.toArray(),
     db.songTags.toArray(),
   ])
-  allCategories.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))
+  const nameOrder = new Map(getConfig().categoryNames.map((name, i) => [name, i]))
+  allCategories.sort((a, b) => (nameOrder.get(a.name) ?? 999) - (nameOrder.get(b.name) ?? 999))
   return { allCategories, allTags, allSongTags }
 }
 
@@ -167,8 +168,9 @@ export async function queryTracksAsSongs(
 }
 
 export async function queryCategories(): Promise<CategoryResponse[]> {
+  const nameOrder = new Map(getConfig().categoryNames.map((name, i) => [name, i]))
   const categories = (await db.categories.toArray())
-    .sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))
+    .sort((a, b) => (nameOrder.get(a.name) ?? 999) - (nameOrder.get(b.name) ?? 999))
   const allTags = await db.tags.toArray()
 
   return categories

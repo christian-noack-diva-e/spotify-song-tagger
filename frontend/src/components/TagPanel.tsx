@@ -71,7 +71,7 @@ export default function TagPanel({ song, categories, onTagToggle, onCategoriesRe
     onCategoriesReordered(next)
 
     try {
-      await api.updateCategoryOrder(next.map((c, i) => ({ id: c.id, sortOrder: i })))
+      api.updateCategoryOrder(next)
     } catch {
       setOrdered(previous)
       onCategoriesReordered(previous)
