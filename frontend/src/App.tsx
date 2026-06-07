@@ -160,7 +160,7 @@ export default function App() {
     await api.ignoreSong(path, tagIds)
     if (liveEditMode && liveEditPlaylistId) {
       await api.removeFromLivePlaylist(path, liveEditPlaylistId)
-      await loadLivePlaylistSongs(liveEditPlaylistId)
+      setLiveEditSongs(prev => prev.filter(s => s.spotifyUri !== path))
     } else {
       await loadSongs()
     }
