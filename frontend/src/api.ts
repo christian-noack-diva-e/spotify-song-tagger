@@ -93,16 +93,33 @@ export const api = {
   ignoreSong: async (spotifyUri: string, tagIds?: number[]): Promise<void> => {
     const config = getConfig()
     await db.songs.update(spotifyUri, { ignored: true })
+
+    // Determine which playlists are the ignore destinations
+    const ignorePlaylistIds = new Set<string>()
     if (tagIds && tagIds.length > 0) {
       for (const tagId of tagIds) {
         const tag = await db.tags.get(tagId)
         if (tag?.spotifyPlaylistId) {
+          ignorePlaylistIds.add(tag.spotifyPlaylistId)
           await spotifyApi.addTrackToPlaylist(spotifyUri, tag.spotifyPlaylistId)
         }
       }
     } else if (config.ignorePlaylistId) {
+      ignorePlaylistIds.add(config.ignorePlaylistId)
       await spotifyApi.addTrackToPlaylist(spotifyUri, config.ignorePlaylistId)
     }
+
+    // Remove from all currently assigned tag playlists (except ignore destinations)
+    const currentSongTags = await db.songTags.where('songUri').equals(spotifyUri).toArray()
+    for (const st of currentSongTags) {
+      const tag = await db.tags.get(st.tagId)
+      if (tag?.spotifyPlaylistId && !ignorePlaylistIds.has(tag.spotifyPlaylistId)) {
+        await spotifyApi.removeTrackFromPlaylist(spotifyUri, tag.spotifyPlaylistId)
+      }
+    }
+
+    // Clear all tag assignments from the DB
+    await db.songTags.where('songUri').equals(spotifyUri).delete()
   },
 
   syncPlaylists: (onProgress?: (p: SyncProgress) => void): Promise<{ playlistsProcessed: number; songsUpdated: number }> =>
