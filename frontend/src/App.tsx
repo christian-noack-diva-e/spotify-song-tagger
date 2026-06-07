@@ -159,6 +159,7 @@ export default function App() {
     const next = nextSong
     await api.ignoreSong(path, tagIds)
     if (liveEditMode && liveEditPlaylistId) {
+      await api.removeFromLivePlaylist(path, liveEditPlaylistId)
       await loadLivePlaylistSongs(liveEditPlaylistId)
     } else {
       await loadSongs()
